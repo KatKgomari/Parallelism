@@ -11,14 +11,14 @@ JAVA=/usr/bin/java
 $(BINDIR)/%.class: $(SRCDIR)/%.java
 	$(JAVAC) -d $(BINDIR)/ -cp $(BINDIR) $<
 
-CLASSES2= MeanFilterSerial.class MeanFilterParallel.cass MedianFilterSerial.class MedianFilterParallel.class
+CLASSES2= MeanFilterSerial.class MeanFilterParallel.class MedianFilterSerial.class MedianFilterParallel.class
 
 CLASSES=$(CLASSES2:%.class=$(BINDIR)/%.class)
 
 default: $(CLASSES)
 
 run: $(CLASSES)
-	$(JAVA) -cp $(BINDIR) 
+	$(JAVA) -cp $(BINDIR) MeanFilterSerial 
 
 clean:
 	rm $(BINDIR)/*.class
