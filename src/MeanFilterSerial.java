@@ -6,8 +6,6 @@
 import java.awt.image.BufferedImage;
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.Rectangle;
-import java.awt.image.Raster;
 import javax.swing.*;   
 import java.io.*;
 import javax.imageio.*;
