@@ -1,5 +1,4 @@
-// Mean Filter Serial Program: Mean filter for smoothing RGB color images
-// My sliding window 
+// Median Filter Parallel Program: Median filter for smoothing RGB color images
 // Author: Katlego Kgomari 
 // Date: 7 August 2022
 
@@ -16,21 +15,16 @@ import java.util.Arrays;
 public class MedianFilterParallel extends RecursiveAction{   
         
         // Instance Variables
-        
-        // I access all of these in my main method
         private int startIndex;
         private int stopIndex;
-        
-        
-         
+    
+        // Other Variables 
         private static int windowWidth;
         private static int deviation;
         private static int dimensions; // of the window 
-        
-       // private static int width;
-       private static int height;
+        private static int height;
        
-        // I need the threads to all work with the same image
+        // I need the threads to all work with the same image(s)
         private static BufferedImage image;
         private static File file;
         private static File file2;
@@ -43,13 +37,8 @@ public class MedianFilterParallel extends RecursiveAction{
         }  
         
         
-        
-        // I need every thread to be able to do the below so I think this is wheremy comouter will be.
-        // Is compute the method that we call by saying "invoke"
-        	
-        protected void computeSequentially(){    // I think that this methode needs to have its own complicated parameters
-        // Maybe a start and a stop. We know we will be dividing distances. In twos to be specific.                 
-        // Nested for loop to access the diffferent pixels (Aim: to copy these pixels onto the outputImage)
+        // Method that will be invoked once base case in compute is satisied.	
+        protected void computeSequentially(){                     
             for (int i = startIndex; i < stopIndex; i++){
                 for(int j = 0; j < height; j++){
                     int[] redList = new int[dimensions];
@@ -57,32 +46,26 @@ public class MedianFilterParallel extends RecursiveAction{
                     int[] blueList = new int[dimensions];
                     
                         
-                        int count = 0;
-                        int upperM = i + deviation;
-                        int upperN = j + deviation;
+                    int count = 0;
+                    int upperM = i + deviation;
+                    int upperN = j + deviation;
                         
-                        for(int m = i - deviation; m <= upperM; m++){    
-                            for(int n = j - deviation; n <= upperN; n++){   // So we are still at the same j and i point.
+                    for(int m = i - deviation; m <= upperM; m++){    
+                        for(int n = j - deviation; n <= upperN; n++){   // So we are still at the same j and i point.
                             try{    
-                       
-                       
-                       // We want the color specs, so lets use the color object.
-                               Color color = new Color(image.getRGB(m,n));
-                               redList[count] = color.getRed();
-                               blueList[count] = color.getBlue();
-                               greenList[count] = color.getGreen();
-                               //System.out.println("count: " + count +" red: " + redList[count] + " green: " + greenList[count] + " blue: " + blueList[count]);                    
-                               count++;
-                               }
-                               
-                               
-                       catch(Exception e){
-                          continue;
-                      } 
-                    }
-                    
+                                // We want the color specs, so lets use the color object.
+                                Color color = new Color(image.getRGB(m,n));
+                                redList[count] = color.getRed();
+                                blueList[count] = color.getBlue();
+                                greenList[count] = color.getGreen();                    
+                                count++;
+                            }        
+                            catch(Exception e){
+                                continue;
+                            } 
+                    }   
                 } 
-                //Before we go to the next pixel, let us get the median of the array
+                //Before we go to the next pixel, let us get the median of each array
                 Arrays.sort(redList);
                 Arrays.sort(greenList);
                 Arrays.sort(blueList);
@@ -95,37 +78,33 @@ public class MedianFilterParallel extends RecursiveAction{
                 Color color2 = new Color(medianRed, medianGreen, medianBlue);
                 outputImage.setRGB(i,j, color2.getRGB());               
                 }
-                
+            }
+        }
+    
+        protected void compute(){
+            int diff = stopIndex - startIndex;
+            if(diff < 550 ){
+                computeSequentially();
             }
         
-    }
-    
-    protected void compute(){
-        int diff = stopIndex - startIndex;
-        if(diff < 550 ){
-            computeSequentially();
-        }
-        
-        else{
-            MedianFilterParallel right = new MedianFilterParallel(startIndex, stopIndex/2);
-            MedianFilterParallel left = new MedianFilterParallel((stopIndex/2), stopIndex);
-            left.fork();
-            right.compute();
-            left.join();
-            try{
-                ImageIO.write(outputImage, "png", file2);
+            else{
+                MedianFilterParallel right = new MedianFilterParallel(startIndex, stopIndex/2);
+                MedianFilterParallel left = new MedianFilterParallel((stopIndex/2), stopIndex);
+                left.fork();
+                right.compute();
+                left.join();
+                try{
+                    ImageIO.write(outputImage, "png", file2);
                 }
-            catch(IOException e){
-                System.out.println("Image could not be produced.");
-                System.exit(0);
+                catch(IOException e){
+                    System.out.println("Image could not be produced.");
+                    System.exit(0);
+                }
             }
         }
-    
-    }
     
     
     public static void main(String[] args){
-        // Is this where I would initilaize the fork-join pool?
         windowWidth = Integer.parseInt(args[2]); 
         if(windowWidth < 3){
             System.out.println("WindowWidth must greater than or equal to 3.");
@@ -166,6 +145,5 @@ public class MedianFilterParallel extends RecursiveAction{
             System.out.println("Done!");
             
         }  
-    }
-    
+    }    
 } 

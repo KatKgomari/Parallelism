@@ -1,5 +1,4 @@
-// Mean Filter Serial Program: Mean filter for smoothing RGB color images
-// My sliding window 
+// Mean Filter Parallel Program: Mean filter for smoothing RGB color images
 // Author: Katlego Kgomari 
 // Date: 7 August 2022
 
@@ -15,21 +14,17 @@ import java.util.concurrent.RecursiveAction;
 public class MeanFilterParallel extends RecursiveAction{   
         
         // Instance Variables
-        
-        // I access all of these in my main method
         private int startIndex;
         private int stopIndex;
         
         
-         
+        // Other Variables 
         private static int windowWidth;
         private static int deviation;
         private static int dimensions; // of the window 
-        
-       // private static int width;
-       private static int height;
+        private static int height;
        
-        // I need the threads to all work with the same image
+        // The threads need to all work with the same input and output image
         private static BufferedImage image;
         private static File file;
         private static File file2;
@@ -41,98 +36,83 @@ public class MeanFilterParallel extends RecursiveAction{
             this.stopIndex = stopIndex;
         }  
         
-        
-        
-        // I need every thread to be able to do the below so I think this is wheremy comouter will be.
-        // Is compute the method that we call by saying "invoke"
-        	
-        protected void computeSequentially(){    // I think that this methode needs to have its own complicated parameters
-        // Maybe a start and a stop. We know we will be dividing distances. In twos to be specific.                 
-        // Nested for loop to access the diffferent pixels (Aim: to copy these pixels onto the outputImage)
+    
+        // The method that will be invoked when the base condtion is satisfied in compute()	
+        protected void computeSequentially(){    
             for (int i = startIndex; i < stopIndex; i++){
                 for(int j = 0; j < height; j++){
                     int[] redList = new int[dimensions];
                     int[] greenList = new int[dimensions];
                     int[] blueList = new int[dimensions];
                     
+                    int count = 0;
+                    int upperM = i + deviation;
+                    int upperN = j + deviation;
                         
-                        int count = 0;
-                        int upperM = i + deviation;
-                        int upperN = j + deviation;
-                        
-                        for(int m = i - deviation; m <= upperM; m++){    
-                            for(int n = j - deviation; n <= upperN; n++){   // So we are still at the same j and i point.
+                    for(int m = i - deviation; m <= upperM; m++){    
+                        for(int n = j - deviation; n <= upperN; n++){   // So we are still at the same j and i point.
                             try{    
-                       
-                       
-                       // We want the color specs, so lets use the color object.
+                               // We want the color specs, so lets use the color object.
                                Color color = new Color(image.getRGB(m,n));
                                redList[count] = color.getRed();
                                blueList[count] = color.getBlue();
-                               greenList[count] = color.getGreen();
-                               //System.out.println("count: " + count +" red: " + redList[count] + " green: " + greenList[count] + " blue: " + blueList[count]);                    
+                               greenList[count] = color.getGreen();                    
                                count++;
                                }
-                               
-                               
-                       catch(Exception e){
-                          continue;
-                      } 
+                               catch(Exception e){
+                                   continue;
+                                   } 
+                            }
+                    } 
+                //Before we go to the next pixel, let us get the average of each array
+                    int meanRed = 0;
+                    int meanGreen = 0;
+                    int meanBlue = 0;
+                
+                    for(int k = 0; k < redList.length; k++){
+                        meanRed += redList[k];
+                        meanGreen += greenList[k];
+                        meanBlue += blueList[k];
                     }
                     
-                } 
-                //Before we go to the next pixel, let us get the average of the array
-                int meanRed = 0;
-                int meanGreen = 0;
-                int meanBlue = 0;
-                
-                for(int k = 0; k < redList.length; k++){
-                    meanRed += redList[k];
-                    meanGreen += greenList[k];
-                    meanBlue += blueList[k];
-                    
-                }
-                meanRed = (int)meanRed/(count + 1);
-                meanGreen = (int)meanGreen/(count + 1);
-                meanBlue = (int)meanBlue/(count+1);
+                    meanRed = (int)meanRed/(count + 1);
+                    meanGreen = (int)meanGreen/(count + 1);
+                    meanBlue = (int)meanBlue/(count+1);
                           
-                Color color2 = new Color(meanRed, meanGreen, meanBlue);
-                outputImage.setRGB(i,j, color2.getRGB());               
-                }
-                
+                    Color color2 = new Color(meanRed, meanGreen, meanBlue);
+                    outputImage.setRGB(i,j, color2.getRGB());               
+                    }
             }
-        
     }
     
-    protected void compute(){
-        int diff = stopIndex - startIndex;
-        if(diff < 550 ){
-            computeSequentially();
-        }
-        
-        else{
-            MeanFilterParallel right = new MeanFilterParallel(startIndex, stopIndex/2);
-            MeanFilterParallel left = new MeanFilterParallel((stopIndex/2), stopIndex);
-            left.fork();
-            right.compute();
-            left.join();
-            try{
-                ImageIO.write(outputImage, "png", file2);
+        protected void compute(){
+            int diff = stopIndex - startIndex;
+            if(diff < 550 ){
+                computeSequentially();
                 }
-            catch(IOException e){
-                System.out.println("Image could not be produced.");
-                System.exit(0);
+        
+            else{
+                MeanFilterParallel right = new MeanFilterParallel(startIndex, stopIndex/2);
+                MeanFilterParallel left = new MeanFilterParallel((stopIndex/2), stopIndex);
+                left.fork();
+                right.compute();
+                left.join();
+                try{
+                    ImageIO.write(outputImage, "png", file2);
+                }
+                catch(IOException e){
+                    System.out.println("Image could not be produced.");
+                    System.exit(0);
+                }
             }
         }
-    
-    }
     
     
     public static void main(String[] args){
-        // Is this where I would initilaize the fork-join pool?
+        
         windowWidth = Integer.parseInt(args[2]); 
-        if(windowWidth < 3){
-            System.out.println("WindowWidth must greater than or equal to 3.");
+        if((windowWidth < 3) || (windowWidth%2 == 0)){
+            System.out.println("The width of the window must be an odd number greater than or equal to 3.");
             System.exit(0);
         }
         else{
@@ -171,5 +151,4 @@ public class MeanFilterParallel extends RecursiveAction{
             
         }  
     }
-    
 } 
