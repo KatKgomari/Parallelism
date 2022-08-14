@@ -15,69 +15,41 @@ import java.util.concurrent.RecursiveAction;
 public class MeanFilterParallel extends RecursiveAction{   
         
         // Instance Variables
-        private String inputFile;   
-        private String outputFile;    
-        private int windowWidth;
-        private int deviation;
-        private int dimensions; // of the window
         
-        private int width;
-        private int height;
-        private BufferedImage image;
-        private File file;
-        private File2 file;
-        private BufferedImage outputImage;
+        // I access all of these in my main method
+        private int startIndex;
+        private int stopIndex;
+        
+        
+         
+        private static int windowWidth;
+        private static int deviation;
+        private static int dimensions; // of the window 
+        
+       // private static int width;
+       private static int height;
+       
+        // I need the threads to all work with the same image
+        private static BufferedImage image;
+        private static File file;
+        private static File file2;
+        private static BufferedImage outputImage;
                              
         
-        public MeanFilterParallel(String inputFile, String outputFile, int windowWidth){
-            this.inputFile = inputFile;
-            this.outputFile = outputFile;
-            this.windowWidth = windowWidth;
-            deviation = (windowWidth-1)/2; 
-            dimensions = windowWidth * windowWidth;
-        }
-        
-        public void getImage(){
-        // Opening our image in a try/catch block 
-            BufferedImage image = null;
-            File file = null;
-            
-            try{
-                file = new File(inputFile);
-                image = ImageIO.read(file); // We are now filling the image object with the file.
-                } 
-            catch(IOException e){
-                e.printStackTrace();
-                System.exit(0);
-                } 
-        
-                int width = image.getWidth();
-                int height = image.getHeight();
-            }
+        public MeanFilterParallel(int startIndex, int stopIndex){
+            this.startIndex = startIndex;    // We want to split these in half.
+            this.stopIndex = stopIndex;
+        }  
         
         
         
-        public void createFilteredImage(){ 
-            File file2 = null;
-            BufferedImage outputImage = new BufferedImage(width,height, BufferedImage.TYPE_INT_RGB); // specifies width, height and colourset for our new image.
-        
-            //try-catch block for our new image
-            try{
-                file2 = new File(outputFile);  // Creating file with the name specifies by the user
-            }
-            catch(Exception e){
-                e.printStackTrace();
-                System.exit(0);
-            }
-        
-        } 
-        
-        
-        
-        // I need every thread to be able to do the below so I think this is wheremy comouter will be.	
-                 
+        // I need every thread to be able to do the below so I think this is wheremy comouter will be.
+        // Is compute the method that we call by saying "invoke"
+        	
+        protected void computeSequentially(){    // I think that this methode needs to have its own complicated parameters
+        // Maybe a start and a stop. We know we will be dividing distances. In twos to be specific.                 
         // Nested for loop to access the diffferent pixels (Aim: to copy these pixels onto the outputImage)
-            for (int i = 0; i < width; i++){
+            for (int i = startIndex; i < stopIndex; i++){
                 for(int j = 0; j < height; j++){
                     int[] redList = new int[dimensions];
                     int[] greenList = new int[dimensions];
@@ -98,7 +70,7 @@ public class MeanFilterParallel extends RecursiveAction{
                                redList[count] = color.getRed();
                                blueList[count] = color.getBlue();
                                greenList[count] = color.getGreen();
-                               System.out.println("count: " + count +" red: " + redList[count] + " green: " + greenList[count] + " blue: " + blueList[count]);                    
+                               //System.out.println("count: " + count +" red: " + redList[count] + " green: " + greenList[count] + " blue: " + blueList[count]);                    
                                count++;
                                }
                                
@@ -129,29 +101,75 @@ public class MeanFilterParallel extends RecursiveAction{
                 }
                 
             }
-            try{
-            ImageIO.write(outputImage, "png", file2); // Putting the image into a file.         
-            }
-        catch(IOException e){
-            e.printStackTrace();
+        
+    }
+    
+    protected void compute(){
+        int diff = stopIndex - startIndex;
+        if(diff < 550 ){
+            computeSequentially();
         }
         
+        else{
+            MeanFilterParallel right = new MeanFilterParallel(startIndex, stopIndex/2);
+            MeanFilterParallel left = new MeanFilterParallel((stopIndex/2), stopIndex);
+            left.fork();
+            right.compute();
+            left.join();
+            try{
+                ImageIO.write(outputImage, "png", file2);
+                }
+            catch(IOException e){
+                System.out.println("Image could not be produced.");
+                System.exit(0);
+            }
+        }
     
+    }
     
     
     public static void main(String[] args){
         // Is this where I would initilaize the fork-join pool?
-        int windowWidth = Integer.parseInt(args[2]); 
+        windowWidth = Integer.parseInt(args[2]); 
         if(windowWidth < 3){
-            System.out.println("WindowWidth must greater than or equal to 3.")
+            System.out.println("WindowWidth must greater than or equal to 3.");
             System.exit(0);
         }
-        else{   
-            MeanFilterParallel mfp = new MeanFilterParallel(args[0]; args[1], windowWidth);
-        }
-        
-        mfp.getImage();
-        mfp.createFilteredImage();
-          
+        else{
+            // Reading in the image we want to apply the filter to
+            image = null;
+            file = null;
+            try{
+                file = new File(args[0]);
+                image = ImageIO.read(file);
+            } 
+            catch(IOException e){
+                e.printStackTrace();
+                System.exit(0);
+            }
+            
+            int width = image.getWidth();
+            height = image.getHeight();
+            
+            // Creating the BufferedImage object that will our output
+            file2 = null;
+            outputImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            try{
+                file2 = new File(args[1]);
+            }
+            catch(Exception e){
+                e.printStackTrace();
+                System.exit(0);
+            }
+            dimensions = windowWidth * windowWidth;
+            deviation = (windowWidth - 1)/2;
+            
+            MeanFilterParallel mfp = new MeanFilterParallel(0, width);
+            ForkJoinPool pool = new ForkJoinPool();
+            pool.invoke(mfp);
+            System.out.println("Done!");
+            
+        }  
     }
+    
 } 
