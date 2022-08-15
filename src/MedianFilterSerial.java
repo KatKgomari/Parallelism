@@ -12,7 +12,20 @@ import java.util.Arrays;
  
 
 public class MedianFilterSerial{
-
+    
+    // Variables and methods to keep track of runTime()
+    private static long startTime;
+    private static long runTime;
+    
+    private static void tic(){
+        startTime = System.currentTimeMillis();
+    }
+    
+    private static void toc(){
+        runTime = (System.currentTimeMillis() - startTime);
+    }
+    
+    
     public static void main(String[] args){
         int windowWidth = Integer.parseInt(args[2]);
         if((windowWidth < 3)||(windowWidth%2 == 0)){
@@ -20,6 +33,8 @@ public class MedianFilterSerial{
             System.exit(0);
         } 
         else{
+            // Getting the number of processors
+            int noThreads = Runtime.getRuntime().availableProcessors();
             BufferedImage image = null;
             File file = null;   
             String inputFile = args[0];
@@ -52,7 +67,7 @@ public class MedianFilterSerial{
         
         	
             int dimensions = windowWidth * windowWidth; 
-             
+            tic(); 
             // Nested for loop to access the each pixel
             for (int i = 0; i < width; i++){
                 for(int j = 0; j < height; j++){
@@ -93,12 +108,14 @@ public class MedianFilterSerial{
                 }
                 
             }
+            toc();
             try{
             ImageIO.write(outputImage, "png", file2); // Putting the image into a file.         
             }
             catch(IOException e){
                 e.printStackTrace();
             }
+            System.out.println("Runtime was " +runTime/1000.0f + " seconds on " +noThreads+ " processors. Had a WindowWidth of " +windowWidth+ ".");
             System.out.println("Done!");    
         }
     }

@@ -23,12 +23,25 @@ public class MeanFilterParallel extends RecursiveAction{
         private static int deviation;
         private static int dimensions; // of the window 
         private static int height;
+        private static int width;
        
         // The threads need to all work with the same input and output image
         private static BufferedImage image;
         private static File file;
         private static File file2;
         private static BufferedImage outputImage;
+        
+        // Variables that will be used when timing the execution
+        private static long startTime = 0;
+        private static long runTime = 0;
+        
+        // Methods used to time the execution (got methods from Michelle Kuttel, CSC2002S course convener)
+        private static void tic(){
+            startTime = System.currentTimeMillis();
+        }
+        private static void toc(){
+            runTime = (System.currentTimeMillis() - startTime);
+        }
                              
         
         public MeanFilterParallel(int startIndex, int stopIndex){
@@ -87,7 +100,7 @@ public class MeanFilterParallel extends RecursiveAction{
     
         protected void compute(){
             int diff = stopIndex - startIndex;
-            if(diff < 550 ){
+            if(diff <= (width/2)){
                 computeSequentially();
                 }
         
@@ -97,6 +110,7 @@ public class MeanFilterParallel extends RecursiveAction{
                 left.fork();
                 right.compute();
                 left.join();
+                toc();
                 try{
                     ImageIO.write(outputImage, "png", file2);
                 }
@@ -116,6 +130,9 @@ public class MeanFilterParallel extends RecursiveAction{
             System.exit(0);
         }
         else{
+            // Getting the number of processors 
+            int noThreads = Runtime.getRuntime().availableProcessors();
+            
             // Reading in the image we want to apply the filter to
             image = null;
             file = null;
@@ -128,7 +145,7 @@ public class MeanFilterParallel extends RecursiveAction{
                 System.exit(0);
             }
             
-            int width = image.getWidth();
+            width = image.getWidth();
             height = image.getHeight();
             
             // Creating the BufferedImage object that will our output
@@ -146,7 +163,9 @@ public class MeanFilterParallel extends RecursiveAction{
             
             MeanFilterParallel mfp = new MeanFilterParallel(0, width);
             ForkJoinPool pool = new ForkJoinPool();
+            tic();
             pool.invoke(mfp);
+            System.out.println("Runtime was " + runTime/1000.0f + " seconds on " + noThreads + ". Had WindowWidth of " + windowWidth + ".");
             System.out.println("Done!");
             
         }  

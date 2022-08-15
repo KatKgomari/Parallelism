@@ -12,6 +12,19 @@ import javax.imageio.*;
 
 public class MeanFilterSerial{
 
+    // Variables and methods used to keep track of execution time (got theses from Michelle Kuttel, CSC2002S course convener)
+    
+    private static long startTime = 0;
+    private static long runTime = 0;
+    
+    private static void tic(){
+        startTime = System.currentTimeMillis();
+    }
+    
+    private static void toc(){
+        runTime = (System.currentTimeMillis() - startTime);
+    }
+
     public static void main(String[] args){
         int windowWidth = Integer.parseInt(args[2]);
         
@@ -20,6 +33,8 @@ public class MeanFilterSerial{
             System.exit(0); 
         }
         else{
+        // Getting the number of processors
+        int noThreads = Runtime.getRuntime().availableProcessors();
         int width; 
         int height;        
         BufferedImage image = null;
@@ -55,7 +70,7 @@ public class MeanFilterSerial{
         
         	
         int dimensions = windowWidth * windowWidth; 
-             
+        tic();     
         // Nested for loop to access the each pixel
             for (int i = 0; i < width; i++){
                 for(int j = 0; j < height; j++){
@@ -102,12 +117,14 @@ public class MeanFilterSerial{
                     outputImage.setRGB(i,j, color2.getRGB());               
                 }        
             }
+            toc();
             try{
                 ImageIO.write(outputImage, "png", file2); // Putting the image into a file.         
             }
             catch(IOException e){
                 e.printStackTrace();
             }
+        System.out.println("RunTime was " +runTime/1000.0f + " seconds on " +noThreads+ " processors. Had WindowWidth of " +windowWidth + ".");
         System.out.println("Done!");
         }
     }

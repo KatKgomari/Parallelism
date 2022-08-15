@@ -23,13 +23,26 @@ public class MedianFilterParallel extends RecursiveAction{
         private static int deviation;
         private static int dimensions; // of the window 
         private static int height;
-       
+        private static int width;
+        
         // I need the threads to all work with the same image(s)
         private static BufferedImage image;
         private static File file;
         private static File file2;
         private static BufferedImage outputImage;
-                             
+        
+        // Variables and methods to keep tarck of running time(got these from Michelle Kuttel, CSC2002S course convener)
+        private static long startTime;
+        private static long runTime;
+        
+        private static void tic(){
+            startTime = System.currentTimeMillis();
+        }              
+        
+        private static void toc(){
+            runTime = (System.currentTimeMillis() - startTime);
+        }
+        
         
         public MedianFilterParallel(int startIndex, int stopIndex){
             this.startIndex = startIndex;    // We want to split these in half.
@@ -83,7 +96,7 @@ public class MedianFilterParallel extends RecursiveAction{
     
         protected void compute(){
             int diff = stopIndex - startIndex;
-            if(diff < 550 ){
+            if(diff <= (width/2) ){
                 computeSequentially();
             }
         
@@ -93,6 +106,7 @@ public class MedianFilterParallel extends RecursiveAction{
                 left.fork();
                 right.compute();
                 left.join();
+                toc();
                 try{
                     ImageIO.write(outputImage, "png", file2);
                 }
@@ -111,6 +125,10 @@ public class MedianFilterParallel extends RecursiveAction{
             System.exit(0);
         }
         else{
+            // Getting the number of processors that are available
+            int noThreads = Runtime.getRuntime().availableProcessors();
+            
+        
             // Reading in the image we want to apply the filter to
             image = null;
             file = null;
@@ -123,7 +141,7 @@ public class MedianFilterParallel extends RecursiveAction{
                 System.exit(0);
             }
             
-            int width = image.getWidth();
+            width = image.getWidth();
             height = image.getHeight();
             
             // Creating the BufferedImage object that will our output
@@ -141,7 +159,9 @@ public class MedianFilterParallel extends RecursiveAction{
             
             MedianFilterParallel mfp = new MedianFilterParallel(0, width);
             ForkJoinPool pool = new ForkJoinPool();
+            tic();
             pool.invoke(mfp);
+            System.out.println("Runtime was " + runTime/1000.0f + " seconds on " + noThreads + " processors. Had a windowWidth of " + windowWidth + ".");
             System.out.println("Done!");
             
         }  
