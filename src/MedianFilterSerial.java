@@ -115,7 +115,7 @@ public class MedianFilterSerial{
             catch(IOException e){
                 e.printStackTrace();
             }
-            System.out.println("Runtime was " +runTime/1000.0f + " seconds on " +noThreads+ " processors. Had a WindowWidth of " +windowWidth+ ".");
+            System.out.println("Runtime was " +runTime/1000.0f + " seconds on " +noThreads+ " processors. Image dimensions: " +width+ " x " +height+ ". Filter WindowWidth: " +windowWidth+ ".");
             System.out.println("Done!");    
         }
     }

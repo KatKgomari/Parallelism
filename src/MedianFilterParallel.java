@@ -8,6 +8,7 @@ import java.awt.Graphics2D;
 import javax.swing.*;   
 import java.io.*;
 import javax.imageio.*;
+import java.util.concurrent.*;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveAction;
 import java.util.Arrays; 
@@ -17,6 +18,7 @@ public class MedianFilterParallel extends RecursiveAction{
         // Instance Variables
         private int startIndex;
         private int stopIndex;
+        private int split;
     
         // Other Variables 
         private static int windowWidth;
@@ -30,10 +32,13 @@ public class MedianFilterParallel extends RecursiveAction{
         private static File file;
         private static File file2;
         private static BufferedImage outputImage;
+        private static final int CUT_OFF = 75;
         
         // Variables and methods to keep tarck of running time(got these from Michelle Kuttel, CSC2002S course convener)
         private static long startTime;
         private static long runTime;
+        
+        static final ForkJoinPool pool = new ForkJoinPool();
         
         private static void tic(){
             startTime = System.currentTimeMillis();
@@ -47,6 +52,7 @@ public class MedianFilterParallel extends RecursiveAction{
         public MedianFilterParallel(int startIndex, int stopIndex){
             this.startIndex = startIndex;    // We want to split these in half.
             this.stopIndex = stopIndex;
+            split = (startIndex+stopIndex)/2;
         }  
         
         
@@ -96,13 +102,13 @@ public class MedianFilterParallel extends RecursiveAction{
     
         protected void compute(){
             int diff = stopIndex - startIndex;
-            if(diff <= (width/2) ){
+            if(diff <= CUT_OFF){
                 computeSequentially();
             }
         
             else{
-                MedianFilterParallel right = new MedianFilterParallel(startIndex, stopIndex/2);
-                MedianFilterParallel left = new MedianFilterParallel((stopIndex/2), stopIndex);
+                MedianFilterParallel left = new MedianFilterParallel(startIndex, split);
+                MedianFilterParallel right = new MedianFilterParallel(split, stopIndex);
                 left.fork();
                 right.compute();
                 left.join();
@@ -158,10 +164,9 @@ public class MedianFilterParallel extends RecursiveAction{
             deviation = (windowWidth - 1)/2;
             
             MedianFilterParallel mfp = new MedianFilterParallel(0, width);
-            ForkJoinPool pool = new ForkJoinPool();
             tic();
             pool.invoke(mfp);
-            System.out.println("Runtime was " + runTime/1000.0f + " seconds on " + noThreads + " processors. Had a windowWidth of " + windowWidth + ".");
+            System.out.println("Runtime was " + runTime/1000.0f + " seconds on " + noThreads + " processors. Image dimensions: " +width+ " x " +height+". Filter WindowWidth: " + windowWidth + ".");
             System.out.println("Done!");
             
         }  

@@ -8,15 +8,16 @@ import java.awt.Graphics2D;
 import javax.swing.*;   
 import java.io.*;
 import javax.imageio.*;
+import java.util.concurrent.*;
 import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.RecursiveAction; 
+import java.util.concurrent.RecursiveAction;
 
 public class MeanFilterParallel extends RecursiveAction{   
         
         // Instance Variables
         private int startIndex;
         private int stopIndex;
-        
+        private int split;
         
         // Other Variables 
         private static int windowWidth;
@@ -30,10 +31,13 @@ public class MeanFilterParallel extends RecursiveAction{
         private static File file;
         private static File file2;
         private static BufferedImage outputImage;
+        private static final int CUT_OFF = 75;
         
         // Variables that will be used when timing the execution
         private static long startTime = 0;
         private static long runTime = 0;
+        
+        static final ForkJoinPool pool = new ForkJoinPool();
         
         // Methods used to time the execution (got methods from Michelle Kuttel, CSC2002S course convener)
         private static void tic(){
@@ -47,6 +51,7 @@ public class MeanFilterParallel extends RecursiveAction{
         public MeanFilterParallel(int startIndex, int stopIndex){
             this.startIndex = startIndex;    // We want to split these in half.
             this.stopIndex = stopIndex;
+            split = (startIndex+stopIndex)/2;
         }  
         
     
@@ -100,13 +105,15 @@ public class MeanFilterParallel extends RecursiveAction{
     
         protected void compute(){
             int diff = stopIndex - startIndex;
-            if(diff <= (width/2)){
+            if(diff <= CUT_OFF){
                 computeSequentially();
                 }
         
             else{
-                MeanFilterParallel right = new MeanFilterParallel(startIndex, stopIndex/2);
-                MeanFilterParallel left = new MeanFilterParallel((stopIndex/2), stopIndex);
+                MeanFilterParallel left = new MeanFilterParallel(startIndex, split);
+                //System.out.println("Thread created: " +startIndex+ " " + split);
+                MeanFilterParallel right = new MeanFilterParallel(split, stopIndex);
+                //System.out.println("Thread created: " + split + " " + stopIndex);
                 left.fork();
                 right.compute();
                 left.join();
@@ -162,10 +169,9 @@ public class MeanFilterParallel extends RecursiveAction{
             deviation = (windowWidth - 1)/2;
             
             MeanFilterParallel mfp = new MeanFilterParallel(0, width);
-            ForkJoinPool pool = new ForkJoinPool();
             tic();
             pool.invoke(mfp);
-            System.out.println("Runtime was " + runTime/1000.0f + " seconds on " + noThreads + ". Had WindowWidth of " + windowWidth + ".");
+            System.out.println("Runtime was " + runTime/1000.0f + " seconds on " + noThreads + " processors. Image dimensions: " +width+ " x " +height+ ". Filter WindowWidth: " + windowWidth + ".");
             System.out.println("Done!");
             
         }  

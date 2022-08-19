@@ -124,7 +124,7 @@ public class MeanFilterSerial{
             catch(IOException e){
                 e.printStackTrace();
             }
-        System.out.println("RunTime was " +runTime/1000.0f + " seconds on " +noThreads+ " processors. Had WindowWidth of " +windowWidth + ".");
+        System.out.println("RunTime was " +runTime/1000.0f + " seconds on " +noThreads+ " processors. Image dimensions: " +width+ " x " +height+ ". Filter WindowWidth: " +windowWidth + ".");
         System.out.println("Done!");
         }
     }
